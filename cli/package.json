@@ -1,7 +1,8 @@
 {
   "name": "git-file-history",
   "description": "Quickly browse the history of a file from any git repository",
-  "version": "0.0.3",
+  "version": "1.0.1",
+  "repository": "pomber/git-history",
   "keywords": [
     "cli",
     "git",
@@ -26,15 +27,25 @@
   "dependencies": {
     "execa": "^1.0.0",
     "get-port": "^4.1.0",
+    "koa": "^2.7.0",
+    "koa-router": "^7.4.0",
+    "koa-static": "^5.0.0",
     "open": "^0.0.5",
-    "serve-handler": "^5.0.8"
+    "opencollective-postinstall": "^2.0.2",
+    "serve-handler": "^5.0.8",
+    "yargs": "^13.2.2"
   },
   "scripts": {
-    "build-site": "cd .. && yarn build && rm -fr cli/site/ && cp -r build/ cli/site/",
+    "build-site": "cd .. && cross-env REACT_APP_GIT_PROVIDER=cli yarn build && rm -fr cli/site/ && cp -r build/ cli/site/",
     "build": "yarn build-site",
-    "ls-package": "npm pack && tar -xvzf *.tgz && rm -rf package *.tgz"
+    "ls-package": "npm pack && tar -xvzf *.tgz && rm -rf package *.tgz",
+    "postinstall": "opencollective-postinstall"
   },
   "devDependencies": {
-    "np": "^4.0.2"
+    "cross-env": "^5.2.0"
+  },
+  "collective": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/git-history"
   }
 }
