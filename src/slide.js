@@ -1,7 +1,6 @@
 import React from "react";
 import animation from "./animation";
 import theme from "./nightOwl";
-import Scroller from "./scroller";
 
 const themeStylesByType = Object.create(null);
 theme.styles.forEach(({ types, style }) => {
@@ -13,18 +12,9 @@ theme.styles.forEach(({ types, style }) => {
   });
 });
 
-function getLineHeight(line, i, { styles }) {
-  return styles[i].height != null ? styles[i].height : 15;
-}
-
-function getLine(line, i, { styles }) {
-  const style = styles[i];
+function Line({ line, style }) {
   return (
-    <div
-      style={Object.assign({ overflow: "hidden", height: "15px" }, style)}
-      key={line.key}
-    >
-      {!line.tokens.length && <br />}
+    <div style={Object.assign({ overflow: "hidden", height: "15px" }, style)}>
       {line.tokens.map((token, i) => {
         const style = themeStylesByType[token.type] || {};
         return (
@@ -37,32 +27,32 @@ function getLine(line, i, { styles }) {
   );
 }
 
-function Slide({ lines, styles, changes }) {
+export default function Slide({ time, lines }) {
+  const styles = animation((time + 1) / 2, lines);
   return (
     <pre
       style={{
         backgroundColor: theme.plain.backgroundColor,
         color: theme.plain.color,
-        paddingTop: "100px",
-        margin: 0,
-        height: "100%",
         width: "100%",
-        boxSizing: "border-box"
+        overflow: "hidden",
+        paddingTop: "100px",
+        margin: 0
       }}
     >
-      <Scroller
-        items={lines}
-        getRow={getLine}
-        getRowHeight={getLineHeight}
-        data={{ styles }}
-        snapAreas={changes}
-      />
+      <code
+        style={{
+          display: "block",
+          width: "calc(100% - 20px)",
+          maxWidth: "900px",
+          margin: "auto",
+          padding: "10px"
+        }}
+      >
+        {lines.map((line, i) => (
+          <Line line={line} style={styles[i]} key={line.key} />
+        ))}
+      </code>
     </pre>
   );
-}
-
-export default function SlideWrapper({ time, version }) {
-  const { lines, changes } = version;
-  const styles = animation((time + 1) / 2, lines);
-  return <Slide lines={lines} styles={styles} changes={changes} />;
 }

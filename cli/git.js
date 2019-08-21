@@ -1,58 +1,47 @@
 const execa = require("execa");
-const pather = require("path");
 
-async function getCommits(path, last, before) {
+async function getCommits(path) {
   const format = `{"hash":"%h","author":{"login":"%aN"},"date":"%ad"},`;
-  const { stdout } = await execa(
-    "git",
-    [
-      "log",
-      `--max-count=${before ? last + 1 : last}`,
-      `--pretty=format:${format}`,
-      "--date=iso",
-      `${before || "HEAD"}`,
-      "--",
-      pather.basename(path)
-    ],
-    { cwd: pather.dirname(path) }
-  );
+  const { stdout } = await execa("git", [
+    "log",
+    "--follow",
+    "--reverse",
+    `--pretty=format:${format}`,
+    "--date=iso",
+    "--",
+    path
+  ]);
   const json = `[${stdout.slice(0, -1)}]`;
 
-  const messagesOutput = await execa(
-    "git",
-    [
-      "log",
-      `--max-count=${last}`,
-      `--pretty=format:%s`,
-      `${before || "HEAD"}`,
-      "--",
-      pather.basename(path)
-    ],
-    { cwd: pather.dirname(path) }
-  );
+  const messagesOutput = await execa("git", [
+    "log",
+    "--follow",
+    "--reverse",
+    `--pretty=format:%s`,
+    "--",
+    path
+  ]);
 
   const messages = messagesOutput.stdout.replace('"', '\\"').split(/\r?\n/);
 
-  const result = JSON.parse(json).map((commit, i) => ({
-    ...commit,
-    date: new Date(commit.date),
-    message: messages[i]
-  }));
+  const result = JSON.parse(json)
+    .map((commit, i) => ({
+      ...commit,
+      date: new Date(commit.date),
+      message: messages[i]
+    }))
+    .slice(-20);
 
-  return before ? result.slice(1) : result;
+  return result;
 }
 
 async function getContent(commit, path) {
-  const { stdout } = await execa(
-    "git",
-    ["show", `${commit.hash}:./${pather.basename(path)}`],
-    { cwd: pather.dirname(path) }
-  );
+  const { stdout } = await execa("git", ["show", `${commit.hash}:${path}`]);
   return stdout;
 }
 
-module.exports = async function(path, last, before) {
-  const commits = await getCommits(path, last, before);
+module.exports = async function(path) {
+  const commits = await getCommits(path);
   await Promise.all(
     commits.map(async commit => {
       commit.content = await getContent(commit, path);

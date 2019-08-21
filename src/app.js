@@ -1,93 +1,76 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import History from "./history";
 import Landing from "./landing";
-import { useDocumentTitle, Loading, Error } from "./app-helpers";
-import getGitProvider from "./git-providers/providers";
+import {
+  getUrlParams,
+  useLanguageLoader,
+  useCommitsFetcher,
+  useDocumentTitle,
+  Loading,
+  Error
+} from "./app-helpers";
+
+const cli = window._CLI;
 
 export default function App() {
-  const gitProvider = getGitProvider();
+  if (cli) {
+    return <CliApp data={cli} />;
+  }
 
-  if (gitProvider.showLanding()) {
+  const [repo, sha, path] = getUrlParams();
+
+  if (!repo) {
     return <Landing />;
   } else {
-    return (
-      <React.Fragment>
-        <InnerApp gitProvider={gitProvider} />
-        <footer>
-          <a href="https://github.com/pomber/git-history">Git History</a>
-          <br />
-          by
-          <a href="https://twitter.com/pomber">@pomber</a>
-        </footer>
-      </React.Fragment>
-    );
+    return <GitHubApp repo={repo} sha={sha} path={path} />;
   }
 }
 
-function InnerApp({ gitProvider }) {
-  const path = gitProvider.getPath();
-  const fileName = path.split("/").pop();
+function CliApp({ data }) {
+  let { commits, path } = data;
 
+  const fileName = path.split("/").pop();
   useDocumentTitle(`Git History - ${fileName}`);
 
-  const [versions, loading, error, loadMore] = useVersionsLoader(
-    gitProvider,
-    path
-  );
+  commits = commits.map(commit => ({ ...commit, date: new Date(commit.date) }));
+  const [lang, loading, error] = useLanguageLoader(path);
 
   if (error) {
-    return <Error error={error} gitProvider={gitProvider} />;
+    return <Error error={error} />;
   }
 
-  if (!versions && loading) {
+  if (loading) {
     return <Loading path={path} />;
   }
 
-  if (!versions.length) {
-    return <Error error={{ status: 404 }} gitProvider={gitProvider} />;
-  }
-
-  return <History versions={versions} loadMore={loadMore} />;
+  return <History commits={commits} language={lang} />;
 }
 
-function useVersionsLoader(gitProvider) {
-  const [state, setState] = useState({
-    data: null,
-    loading: true,
-    error: null,
-    last: 10,
-    noMore: false
+function GitHubApp({ repo, sha, path }) {
+  const fileName = path.split("/").pop();
+  useDocumentTitle(`Git History - ${fileName}`);
+
+  const [lang, langLoading, langError] = useLanguageLoader(path);
+  const [commits, commitsLoading, commitsError] = useCommitsFetcher({
+    repo,
+    sha,
+    path
   });
 
-  const loadMore = () => {
-    setState(old => {
-      const shouldFetchMore = !old.loading && !old.noMore;
-      return shouldFetchMore
-        ? { ...old, last: old.last + 10, loading: true }
-        : old;
-    });
-  };
+  const loading = langLoading || commitsLoading;
+  const error = langError || commitsError;
 
-  useEffect(() => {
-    gitProvider
-      .getVersions(state.last)
-      .then(data => {
-        setState(old => ({
-          data,
-          loading: false,
-          error: false,
-          last: old.last,
-          noMore: data.length < old.last
-        }));
-      })
-      .catch(error => {
-        setState(old => ({
-          ...old,
-          loading: false,
-          error: error.message || error
-        }));
-      });
-  }, [state.last]);
+  if (error) {
+    return <Error error={error} />;
+  }
 
-  return [state.data, state.loading, state.error, loadMore];
+  if (loading) {
+    return <Loading repo={repo} path={path} />;
+  }
+
+  if (!commits.length) {
+    return <Error error={{ status: 404 }} />;
+  }
+
+  return <History commits={commits} language={lang} />;
 }

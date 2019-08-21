@@ -21,13 +21,12 @@
 .comment-box:after {
   border-color: rgba(1, 22, 39, 0);
   border-bottom-color: rgb(1, 22, 39);
-  border-width: 13px;
-  margin-left: -13px;
+  border-width: 11px;
+  margin-left: -11px;
 }
 .comment-box:before {
   border-color: rgba(1, 22, 39, 0);
   border-bottom-color: rgb(214, 222, 235, 0.5);
   border-width: 14px;
   margin-left: -14px;
-  margin-bottom: 2px;
 }
